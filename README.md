@@ -1,78 +1,44 @@
-# FTTH Broadband Access Architecture: MikroTik PPPoE Server, FreeRADIUS & PCQ Dynamic Bandwidth Shaping
+# Network Hardware & Infrastructure Deployment: Routers, Switches, Wi-Fi APs, ONU & Media Converters
 
-[![Live Demo](https://img.shields.io/badge/Demo-Live%20PPPoE%20&%20FTTH%20Dashboard-06b6d4)](https://mhmithun.github.io/02-FTTH-PPPoE-Bandwidth-Management-PCQ/)
+[![Live Demo](https://img.shields.io/badge/Demo-Live%20Engineering%20Dossier-06b6d4)](https://mhmithun.github.io/02-FTTH-PPPoE-Bandwidth-Management-PCQ/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
-[![Platform: MikroTik RouterOS](https://img.shields.io/badge/RouterOS-v7%20CCR--Series-blue.svg)](configs/mikrotik_pppoe_pcq.rsc)
-[![FTTH: GPON / EPON](https://img.shields.io/badge/FTTH-GPON%20OLT%20%2F%20ONU-emerald.svg)](configs/gpon_olt_onu_provisioning.txt)
+[![Hardware: Networking Devices](https://img.shields.io/badge/Hardware-Routers%20%7C%20Switches%20%7C%20ONU%20%7C%20AP-blue.svg)](#)
 
-Turnkey ISP broadband delivery architecture featuring centralized MikroTik RouterOS PPPoE Access Concentrator, dynamic subscriber IP pool recycling, Per-Connection Queueing (PCQ) traffic shaping, FreeRADIUS accounting, and GPON/EPON Optical Line Terminal (OLT) service-port provisioning.
-
----
-
-## 🌐 Live Web Management Simulator (`index.html`)
-
-An interactive ISP Subscriber & OLT Operations Dashboard:
-- **Live PPPoE Active Sessions Viewer**: Monitor subscriber authentication, assigned IP addresses, uptime, and live Rx/Tx throughput.
-- **PCQ Dynamic Bandwidth Equalizer**: Visual simulator demonstrating how 100 concurrent broadband subscribers dynamically share a 1 Gbps pipe without packet buffer bloat.
-- **FTTH Optical Link Budget Calculator**: Input optical transmitter power (dBm), fiber length (km), and optical splitter ratios (1:8, 1:16, 1:32, 1:64) to calculate received ONU optical sensitivity (dBm) and detect high-loss cuts.
-- **MikroTik CLI / Winbox Command Generator**: Instantly generate RouterOS scripts for user profiles (e.g. 10 Mbps, 25 Mbps, 50 Mbps).
+A comprehensive network hardware deployment and maintenance runbook covering physical Layer 1 structured cabling (Cat6 RJ45 termination, patch panels, T568B pinout), optical fiber-to-copper media converters (100Base-FX to 100Base-TX), Optical Network Units (ONU), router gateway provisioning, switch port patching, and dual-band enterprise Wi-Fi access point deployment.
 
 ---
 
-## 🛠️ Key Technical Implementations
+## 🌐 Live Engineering Dossier & Interactive Console
+Access the live interactive technical dossier hosted on GitHub Pages:
+👉 **[https://mhmithun.github.io/02-FTTH-PPPoE-Bandwidth-Management-PCQ/](https://mhmithun.github.io/02-FTTH-PPPoE-Bandwidth-Management-PCQ/)**
 
-1. **MikroTik RouterOS PPPoE Server (`configs/mikrotik_pppoe_pcq.rsc`)**:
-   - Centralized PPPoE service bound to VLAN trunking interface (`vlan-pppoe-subscribers`).
-   - MTU/MRU clamping to 1480 to prevent TCP MSS fragmentation.
-   - Subscriber IP Pool: `100.64.0.0/18` (Carrier-Grade NAT RFC 6598).
-   - Dynamic Profile tiers:
-     - `Profile-10M`: 10M/10M rate limit with 15M burst for 8 seconds.
-     - `Profile-25M`: 25M/25M rate limit with 35M burst for 8 seconds.
-     - `Profile-50M`: 50M/50M rate limit with 75M burst for 8 seconds.
+Key features in the live dossier:
+1. **Physical Hardware Architecture:** 5-stage pipeline from ISP optical drop, media converter, edge router, managed switch, to Wi-Fi APs and workstations.
+2. **Device Configuration Runbooks:** Standard Operating Procedures (SOP) for router WAN/LAN setup, static IP assignment, and dual-band Wi-Fi AP channel planning.
+3. **Diagnostic LED Matrix:** Operational truth table for Media Converters (PWR, FX Link/Act, TX Link/Act, FDX) and ONU LOS indicators.
+4. **ANSI/TIA-568-B Cabling Standards:** Pinout color codes (T568B), crimping quality checks, and cable continuity verification.
+5. **SQA Hardware RCA Report:** Incident triage resolving physical layer uplink flapping caused by patch cord pin faults.
 
-2. **Per-Connection Queueing (PCQ) Dynamic QoS**:
-   - Prevents bandwidth hogging by heavy multi-threaded downloaders (IDM, torrents).
-   - Dynamically partitions available bandwidth equally across all active customer IP connections.
+---
 
-3. **GPON / EPON OLT & ONU Provisioning (`configs/gpon_olt_onu_provisioning.txt`)**:
-   - DBA profile definitions (Dynamic Bandwidth Assignment Type 4 Best Effort).
-   - GEM port and T-CONT mapping for Triple-Play traffic (Internet VLAN 100, IPTV VLAN 200, Management VLAN 300).
-   - ONU automatic authentication via LOID / SN registration.
+## 🛠️ Hardware Stack & Tools
+- **Core Network Devices:** Cisco 2911 ISR, Managed 24-Port Switches, Dual-Band 802.11ac/ax Wi-Fi Routers
+- **Optical & Conversion:** Single-Mode 100/1000M Media Converters (1310/1550nm SC), Optical Network Units (ONU)
+- **Cabling & Physical Layer:** Cat6 UTP 23AWG, RJ45 8P8C Gold-Plated Connectors, Punch-Down Patch Panels, SC/UPC Fiber Patch Cords
+- **Diagnostic Equipment:** RJ45 Continuity Cable Tester, Optical Visual Fault Locator (VFL), Optical Power Meter
 
 ---
 
 ## 📁 Repository Structure
 ```
-├── configs/
-│   ├── freeradius_dictionary_users.txt   # FreeRADIUS users & rate-limit attributes
-│   ├── gpon_olt_onu_provisioning.txt     # Huawei / ZTE / BDCOM OLT CLI configuration
-│   └── mikrotik_pppoe_pcq.rsc            # Complete RouterOS script for PPPoE & Queues
-├── index.html                            # Interactive FTTH & PPPoE NOC web console
-├── LICENSE
-└── README.md
+├── index.html       # Comprehensive Multi-Section Engineering Dossier
+├── README.md        # Technical Documentation & Hardware Runbook
+└── LICENSE          # MIT Open Source License
 ```
 
 ---
 
-## 🚀 Deployment Instructions
-
-### 1. MikroTik RouterOS Setup
-```bash
-/import file-name=mikrotik_pppoe_pcq.rsc
-```
-
-### 2. Verify Active Subscribers
-```bash
-/interface pppoe-server print
-/interface pppoe-server active print
-/queue simple print
-```
-
----
-
-## 📄 License & Maintainer
-Maintained by **[MD. Mahamudul Hasan](https://github.com/MHMITHUN)**  
-- Email: mhmmithun1@gmail.com | Phone: 01560027539  
-- GitHub: [@MHMITHUN](https://github.com/MHMITHUN) | LinkedIn: [linkedin.com/in/mahamudul0](https://linkedin.com/in/mahamudul0)  
-Released under the [MIT License](LICENSE).
-
+## 👨‍💻 Author
+**MD. Mahamudul Hasan**  
+Software & Network Support Engineer  
+[GitHub Profile](https://github.com/MHMITHUN) · [LinkedIn Profile](https://linkedin.com/in/mahamudul0)
