@@ -1,0 +1,37 @@
+! ==============================================================================
+! GPON / EPON OLT Service-Port & ONU Configuration Script
+! Equipment: Huawei SmartAX MA5608T / ZTE C320 / BDCOM GP3600
+! Author: Md. Mahamudul Hasan (Support Engineer - ISP Software & Networking)
+! ==============================================================================
+
+! 1. Define DBA Profile (Dynamic Bandwidth Allocation for Broadband)
+dba-profile add profile-id 15 profile-name "PPPOE-100M-UP" type4 max 102400
+
+! 2. Configure GPON Line Profile
+ont-lineprofile gpon profile-id 25 profile-name "ASIANNET-INTERNET-LINE"
+ tcont 1 dba-profile-id 15
+ gem add 1 eth tcont 1
+ gem mapping 1 1 vlan 100
+ commit
+ quit
+
+! 3. Configure GPON Service Profile
+ont-srvprofile gpon profile-id 25 profile-name "ASIANNET-ONU-SRV"
+ ont-port eth 4
+ port vlan eth 1 translation 100 user-vlan 100
+ commit
+ quit
+
+! 4. Register ONU on GPON Port 0/1/1
+interface gpon 0/1
+ ont add 1 1 sn-auth "48575443ABC12345" omci ont-lineprofile-id 25 ont-srvprofile-id 25 desc "Customer_Tungi_Gazipur_Plot12"
+ quit
+
+! 5. Create Service Port for Subscriber VLAN
+service-port 101 vlan 100 gpon 0/1/1 ont 1 gemport 1 multi-service user-vlan 100 tag-transform translate
+
+! 6. Diagnostic Commands for Fiber Link Verification
+! Check ONU Received Optical Power:
+! MA5608T# display ont optical-info 0/1 1
+! Normal RX Power range: -15 dBm to -24 dBm (Warning if < -27 dBm)
+

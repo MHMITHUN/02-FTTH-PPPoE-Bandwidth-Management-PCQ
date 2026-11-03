@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FTTH Broadband & MikroTik PPPoE BRAS Operations Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+    <!-- Header -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="h-9 w-9 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                    <i class="fa-solid fa-satellite-dish text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-white leading-tight">FTTH Broadband & PPPoE BRAS Console</h1>
+                    <p class="text-xs text-slate-400">MikroTik RouterOS v7 | GPON OLT Provisioning | PCQ QoS</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 text-xs">
+                <div class="bg-slate-800 px-3 py-1.5 rounded-full border border-slate-700 flex items-center space-x-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span class="text-slate-300 font-mono">BRAS Status: <strong>ONLINE</strong></span>
+                </div>
+                <a href="https://github.com/MHMITHUN/02-FTTH-PPPoE-Bandwidth-Management-PCQ" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold px-3 py-1.5 rounded-lg transition text-xs shadow-md shadow-emerald-600/30 flex items-center space-x-1.5">
+                    <i class="fa-brands fa-github"></i>
+                    <span>GitHub Repo</span>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+        <!-- Top Stats Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div class="text-xs text-slate-400">Total Active PPPoE Sessions</div>
+                <div class="text-2xl font-bold font-mono text-emerald-400 mt-1" id="stat-sessions">148 Subscribers</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Pool: 100.64.0.0/18 (CGNAT)</div>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div class="text-xs text-slate-400">Aggregated Subscriber Traffic</div>
+                <div class="text-2xl font-bold font-mono text-cyan-400 mt-1" id="stat-traffic">712.4 Mbps</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">PCQ Queue Capacity: 1.0 Gbps</div>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div class="text-xs text-slate-400">FreeRADIUS Auth Latency</div>
+                <div class="text-2xl font-bold font-mono text-amber-400 mt-1">4.2 ms</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">PAP / CHAP / MS-CHAPv2</div>
+            </div>
+            <div class="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div class="text-xs text-slate-400">GPON OLT PON Ports</div>
+                <div class="text-2xl font-bold font-mono text-purple-400 mt-1">4 Ports (1:64)</div>
+                <div class="text-[11px] text-slate-500 mt-0.5">Optical TX Power: +5.0 dBm</div>
+            </div>
+        </div>
+
+        <!-- Optical Link Budget Calculator & PCQ Bandwidth Throttle -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Optical Power Budget Tool -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl">
+                <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-bolt text-amber-400"></i>
+                        <h2 class="text-sm font-bold text-white uppercase tracking-wider">FTTH Optical Link Budget Calculator</h2>
+                    </div>
+                    <span class="text-[11px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">ITU-T G.984</span>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>OLT SFP Launch Power (dBm):</span>
+                            <span id="label-tx" class="font-mono text-emerald-400 font-bold">+5.0 dBm</span>
+                        </div>
+                        <input id="range-tx" type="range" min="2" max="7" step="0.5" value="5" oninput="calculateOpticalBudget()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300 mb-1">
+                            <span>Fiber Drop Distance (KM):</span>
+                            <span id="label-dist" class="font-mono text-cyan-400 font-bold">6.0 KM (0.35 dB/km)</span>
+                        </div>
+                        <input id="range-dist" type="range" min="0.5" max="20" step="0.5" value="6" oninput="calculateOpticalBudget()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-300 mb-1">Optical Splitter Ratio:</label>
+                        <select id="select-splitter" onchange="calculateOpticalBudget()" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500">
+                            <option value="10.5">1:8 PLC Splitter (10.5 dB loss)</option>
+                            <option value="14.0">1:16 PLC Splitter (14.0 dB loss)</option>
+                            <option value="17.5" selected>1:32 PLC Splitter (17.5 dB loss) [Standard]</option>
+                            <option value="21.0">1:64 High-Density Splitter (21.0 dB loss)</option>
+                        </select>
+                    </div>
+
+                    <!-- Calculated Result Card -->
+                    <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                        <div>
+                            <div class="text-xs text-slate-400">ONU Received Power (RX Level):</div>
+                            <div id="result-power" class="text-2xl font-bold font-mono text-emerald-400 mt-1">-16.60 dBm</div>
+                            <div id="result-desc" class="text-[11px] text-emerald-400 font-medium">Optimal Signal (High Throughput & Zero Jitter)</div>
+                        </div>
+                        <div id="power-badge" class="h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400">
+                            <i class="fa-solid fa-check text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic PCQ Equalizer -->
+            <div class="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 shadow-xl flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between pb-3 mb-4 border-b border-slate-800">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-sliders text-cyan-400"></i>
+                            <h2 class="text-sm font-bold text-white uppercase tracking-wider">PCQ Dynamic Bandwidth Equalizer</h2>
+                        </div>
+                        <span class="text-[11px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded font-mono">MikroTik RouterOS</span>
+                    </div>
+
+                    <div class="space-y-4">
+                        <div class="text-xs text-slate-300 leading-relaxed">
+                            Simulate how MikroTik's <strong class="text-white">Per Connection Queue (PCQ)</strong> dynamically splits an ISP bandwidth bottleneck equally among concurrent high-speed downloaders without buffer-bloat.
+                        </div>
+
+                        <div>
+                            <div class="flex justify-between text-xs text-slate-300 mb-1">
+                                <span>Simulated Concurrent Active Downloaders:</span>
+                                <span id="label-users" class="font-mono text-cyan-400 font-bold">20 Active Streams</span>
+                            </div>
+                            <input id="range-users" type="range" min="1" max="100" step="1" value="20" oninput="calculatePcq()" class="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-500">
+                        </div>
+
+                        <div class="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 font-mono text-xs">
+                            <div class="flex justify-between text-slate-300">
+                                <span>Total Pipe Capacity:</span>
+                                <span class="text-white font-bold">1000 Mbps</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span>Bandwidth Allocated Per Stream:</span>
+                                <span id="pcq-per-stream" class="text-emerald-400 font-bold">50.00 Mbps</span>
+                            </div>
+                            <div class="flex justify-between text-slate-300">
+                                <span>Queue Dropped Packets:</span>
+                                <span class="text-emerald-400 font-bold">0.00% (No Bufferbloat)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-slate-800 text-xs text-slate-500">
+                    Rule: <code class="text-slate-400">/queue type add name=pcq-download kind=pcq pcq-classifier=dst-address</code>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live PPPoE Active Connections Table -->
+        <div class="bg-slate-900 rounded-2xl border border-slate-800 p-5 shadow-xl">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-800">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-users text-emerald-400"></i>
+                    <h3 class="text-sm font-bold text-white uppercase tracking-wider">MikroTik RouterOS: PPPoE Active Sessions</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input id="search-subscribers" onkeyup="filterSubscribers()" type="text" placeholder="Search by username or IP..." class="bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+                    <button onclick="addSimulatedSubscriber()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition flex items-center space-x-1">
+                        <i class="fa-solid fa-plus"></i>
+                        <span>Provision New Client</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs font-mono">
+                    <thead class="bg-slate-950 text-slate-400 border-b border-slate-800">
+                        <tr>
+                            <th class="py-2.5 px-3">Subscriber ID</th>
+                            <th class="py-2.5 px-3">Assigned IP (CGNAT)</th>
+                            <th class="py-2.5 px-3">Service Profile</th>
+                            <th class="py-2.5 px-3">Session Uptime</th>
+                            <th class="py-2.5 px-3">Rx / Tx Rate</th>
+                            <th class="py-2.5 px-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subscribers-tbody" class="divide-y divide-slate-800 text-slate-300">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        <p>Project 02 of Networking Portfolio | Crafted by <strong class="text-slate-300">Md. Mahamudul Hasan</strong> for ISP Software & Network Engineering Roles</p>
+    </footer>
+
+    <script>
+        let subscribers = [
+            { user: "user_gazipur_101", ip: "100.64.10.15", profile: "Silver-25M", uptime: "14d 08:22:10", rx: "24.8 Mbps", tx: "23.9 Mbps" },
+            { user: "tungi_resident_204", ip: "100.64.10.16", profile: "Bronze-10M", uptime: "03d 11:05:42", rx: "9.8 Mbps", tx: "9.4 Mbps" },
+            { user: "corp_textile_505", ip: "100.64.10.17", profile: "Gold-50M", uptime: "42d 19:40:01", rx: "49.1 Mbps", tx: "48.2 Mbps" },
+            { user: "dhaka_bypass_302", ip: "100.64.10.18", profile: "Silver-25M", uptime: "01d 04:12:33", rx: "18.4 Mbps", tx: "12.0 Mbps" },
+            { user: "board_bazar_401", ip: "100.64.10.19", profile: "Bronze-10M", uptime: "07d 15:30:19", rx: "9.2 Mbps", tx: "7.1 Mbps" }
+        ];
+
+        function renderSubscribers(list = subscribers) {
+            const tbody = document.getElementById('subscribers-tbody');
+            tbody.innerHTML = '';
+            list.forEach((sub, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-800/40 transition";
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 font-bold text-white flex items-center space-x-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span>${sub.user}</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-cyan-400">${sub.ip}</td>
+                    <td class="py-2.5 px-3">
+                        <span class="px-2 py-0.5 rounded text-[11px] font-bold ${
+                            sub.profile.includes('Gold') ? 'bg-amber-500/20 text-amber-300' :
+                            sub.profile.includes('Silver') ? 'bg-cyan-500/20 text-cyan-300' :
+                            'bg-slate-800 text-slate-300'
+                        }">${sub.profile}</span>
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-400">${sub.uptime}</td>
+                    <td class="py-2.5 px-3 text-emerald-400 font-bold">${sub.rx} / ${sub.tx}</td>
+                    <td class="py-2.5 px-3 text-right">
+                        <button onclick="terminateSession(${idx})" class="text-rose-400 hover:text-rose-300 text-xs px-2 py-1 rounded bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition">Reset Session</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('stat-sessions').textContent = `${subscribers.length} Subscribers`;
+        }
+
+        function terminateSession(idx) {
+            const user = subscribers[idx].user;
+            subscribers.splice(idx, 1);
+            renderSubscribers();
+            alert(`PPPoE session for ${user} terminated. Client renegotiating session.`);
+        }
+
+        function addSimulatedSubscriber() {
+            const id = Math.floor(Math.random() * 800) + 100;
+            const profiles = ["Bronze-10M", "Silver-25M", "Gold-50M"];
+            const chosen = profiles[Math.floor(Math.random() * profiles.length)];
+            subscribers.unshift({
+                user: `customer_tungi_${id}`,
+                ip: `100.64.11.${Math.floor(Math.random() * 250) + 2}`,
+                profile: chosen,
+                uptime: "00:00:15",
+                rx: "12.4 Mbps",
+                tx: "8.2 Mbps"
+            });
+            renderSubscribers();
+        }
+
+        function filterSubscribers() {
+            const val = document.getElementById('search-subscribers').value.toLowerCase();
+            const filtered = subscribers.filter(s => s.user.toLowerCase().includes(val) || s.ip.includes(val));
+            renderSubscribers(filtered);
+        }
+
+        function calculateOpticalBudget() {
+            const tx = parseFloat(document.getElementById('range-tx').value);
+            const dist = parseFloat(document.getElementById('range-dist').value);
+            const splitterLoss = parseFloat(document.getElementById('select-splitter').value);
+
+            document.getElementById('label-tx').textContent = `+${tx.toFixed(1)} dBm`;
+            document.getElementById('label-dist').textContent = `${dist.toFixed(1)} KM (0.35 dB/km)`;
+
+            const fiberLoss = dist * 0.35;
+            const spliceLoss = 1.0; // 4 splices @ 0.25 dB
+            const connectorLoss = 1.0; // 2 connectors @ 0.5 dB
+            const totalLoss = splitterLoss + fiberLoss + spliceLoss + connectorLoss;
+            const rxPower = tx - totalLoss;
+
+            const resPower = document.getElementById('result-power');
+            const resDesc = document.getElementById('result-desc');
+            const badge = document.getElementById('power-badge');
+
+            resPower.textContent = `${rxPower.toFixed(2)} dBm`;
+
+            if (rxPower >= -24.0 && rxPower <= -12.0) {
+                resPower.className = "text-2xl font-bold font-mono text-emerald-400 mt-1";
+                resDesc.className = "text-[11px] text-emerald-400 font-medium";
+                resDesc.textContent = "Optimal Signal (High Throughput & Zero Jitter)";
+                badge.className = "h-10 w-10 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400";
+                badge.innerHTML = '<i class="fa-solid fa-check text-lg"></i>';
+            } else if (rxPower < -24.0 && rxPower >= -27.0) {
+                resPower.className = "text-2xl font-bold font-mono text-amber-400 mt-1";
+                resDesc.className = "text-[11px] text-amber-400 font-medium";
+                resDesc.textContent = "Marginal Signal (High Loss detected; inspect fiber patch cord)";
+                badge.className = "h-10 w-10 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400";
+                badge.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-lg"></i>';
+            } else {
+                resPower.className = "text-2xl font-bold font-mono text-rose-400 mt-1";
+                resDesc.className = "text-[11px] text-rose-400 font-medium";
+                resDesc.textContent = "Critical Attenuation! ONU Link Loss / Dying Gasp warning";
+                badge.className = "h-10 w-10 rounded-full bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400";
+                badge.innerHTML = '<i class="fa-solid fa-xmark text-lg"></i>';
+            }
+        }
+
+        function calculatePcq() {
+            const users = parseInt(document.getElementById('range-users').value);
+            document.getElementById('label-users').textContent = `${users} Active Streams`;
+            const perStream = (1000 / users).toFixed(2);
+            document.getElementById('pcq-per-stream').textContent = `${perStream} Mbps`;
+        }
+
+        renderSubscribers();
+        calculateOpticalBudget();
+        calculatePcq();
+    </script>
+</body>
+</html>
+

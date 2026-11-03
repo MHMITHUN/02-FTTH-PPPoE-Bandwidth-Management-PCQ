@@ -1,0 +1,27 @@
+# FreeRADIUS Subscriber AAA Configuration for MikroTik PPPoE
+# File: /etc/freeradius/3.0/mods-config/files/authorize
+
+# Bronze Tier - 10 Mbps
+user_bronze_01 Cleartext-Password := "Pass@10M2026"
+    Framed-Protocol = PPP,
+    Service-Type = Framed-User,
+    Framed-IP-Netmask = 255.255.255.255,
+    Mikrotik-Group = "profile-bronze-10m",
+    Mikrotik-Rate-Limit = "10M/10M 15M/15M 8M/8M 8/8"
+
+# Silver Tier - 25 Mbps
+user_silver_02 Cleartext-Password := "Pass@25M2026"
+    Framed-Protocol = PPP,
+    Service-Type = Framed-User,
+    Framed-IP-Netmask = 255.255.255.255,
+    Mikrotik-Group = "profile-silver-25m",
+    Mikrotik-Rate-Limit = "25M/25M 35M/35M 20M/20M 8/8"
+
+# Gold Tier - 50 Mbps
+corp_gold_03 Cleartext-Password := "Pass@50M2026"
+    Framed-Protocol = PPP,
+    Service-Type = Framed-User,
+    Framed-IP-Netmask = 255.255.255.255,
+    Mikrotik-Group = "profile-gold-50m",
+    Mikrotik-Rate-Limit = "50M/50M 75M/75M 45M/45M 8/8"
+
